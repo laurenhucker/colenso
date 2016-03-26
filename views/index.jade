@@ -7,4 +7,8 @@ block body
 		h1= title
 		.container
 		p| Welcome to #{title}. We have an excellent collection of letters for you.
-		| We are based in #{place}.
+		| We are based in !{place}.
+	.container
+		form(action="/search", method="get")
+			input(type="text", name="searchString")
+			input(type="submit")
