@@ -16,6 +16,7 @@
 	"jade-bootstrap": "*",
 	"cheerio": "*",
 	"eslint": "*",
-	"basex": "*"
+	"basex": "*",
+    "fs": "*"
   }
 }
