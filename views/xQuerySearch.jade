@@ -1,13 +1,18 @@
 extends ../node_modules/jade-bootstrap/_bootstrap
-
 block body
 	+navbar("Colenso", "dropdown_menu")
 		+nav_item("/", "active") Home
 		+nav_item("/stringSearch") String Search
-		+nav_item("/xQuerySearch") XQuery Search
-			
+		+nav_item("/xQuerySearch","active") XQuery Search
 	.container
-		h1= title
+		form(action="/xQuerySearch", method="get")
+			input(type="text", name="searchQuery")
+			input(type="submit", value="xQuery Search")
+
+	.container
+		h1 !{searchQuery}
+		.container
+			p  !{numResults}
 		.container
 			each file in results
 				li: a(href = "/viewFile?file=/" + file)

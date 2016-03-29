@@ -1,14 +1,16 @@
 extends ../node_modules/jade-bootstrap/_bootstrap
-
 block body
+
 	+navbar("Colenso", "dropdown_menu")
-		+nav_item("/", "active") Home
+		+nav_item("/") Home
 		+nav_item("/stringSearch") String Search
 		+nav_item("/xQuerySearch") XQuery Search
-			
+
 	.container
-		h1= title
-		.container
-			each file in results
-				li: a(href = "/viewFile?file=/" + file)
-					!{file}
+		a(href ="/saveXml?file=" + path) Save
+		p #{saved}
+
+	.container
+		br
+		h3 Viewing #{path}
+		p  !{file}
