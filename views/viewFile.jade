@@ -1,16 +1,29 @@
 extends ../node_modules/jade-bootstrap/_bootstrap
+
+append styles
+	link(rel='stylesheet', href='/stylesheets/style.css')
+
 block body
 
 	+navbar("Colenso", "dropdown_menu")
 		+nav_item("/") Home
-		+nav_item("/stringSearch") String Search
-		+nav_item("/xQuerySearch") XQuery Search
+		+nav_item("/authors") Authors
+		+nav_item("/places") Places
+		+nav_item("addFile") Add XML
+		form.navbar-form.navbar-left(method='get')
+			input.form-control(type='text', placeholder='Search...', name='searchString', required=true)
+			button.btn.btn-default(type='submit', formaction='/stringSearch') String Search
+			button.btn.btn-default(type='submit', formaction='/xQuerySearch') Query Search
 
-	.container
+	.controls
+		//a(href ="/saveXml?file=" + path) Back
+		//a(href ="/saveXml?file=" + path) Edit
 		a(href ="/saveXml?file=" + path) Save
-		p #{saved}
-
+		//a(href ="/deleteXml?file=" + path) Delete
+	br
+	.save #{saved}
+	br
 	.container
+		h4 Viewing #{path}
 		br
-		h3 Viewing #{path}
 		p  !{file}

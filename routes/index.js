@@ -8,6 +8,7 @@ var client = new basex.Session("127.0.0.1", 1984, "admin", "admin");
 var tei = "XQUERY declare default element namespace 'http://www.tei-c.org/ns/1.0'; ";
 
 client.execute("OPEN Colenso");
+client.execute("DELETE file.xml");
 
 function removeTagsFromString(string){
 	var regex = /(<([^>]+)>)/ig
@@ -33,10 +34,6 @@ function resultsToString(arr){
 		str+=arr[i];
 	}
 	return str;
-}
-
-function replaceAllTagsWithDiv(str){
-	return addDivTags(removeTagsFromString(str).split('|'));
 }
 
 function removeDuplicateEntries(arr){
@@ -67,6 +64,9 @@ function addDivTags(arr){
 
 /* GET home page. */
 router.get('/', function(req, res) {
+	client.execute("OPEN Colenso");
+	var url = req.protocol  + '://' + req.get('host') + req.originalUrl;
+	console.log(req.get('host'));
 	client.execute(tei + "for $n in //title" + " return db:path($n)",
 	function(error, result) {
 		if(error) { 
@@ -77,13 +77,13 @@ router.get('/', function(req, res) {
 			}
 			var content = result.result;
 			content = content.split('\n');
-			res.render('index', { title: 'Colenso', results: content});
+			res.render('index', { title: 'Colenso', results: content, url: url});
 		}
 	});
 });
 
 router.get('/authors', function(req, res) {
-	client.execute(tei + "//name[@type='person']",
+	client.execute(tei + "//author//name[@type='person']",
 		function(error, result) {
 			if(error) {
 				console.error(error);
@@ -91,16 +91,14 @@ router.get('/authors', function(req, res) {
 				if(result.result === ''){
 					console.log('No Results');
 				}
-
-				// var content = removeTagsFromString(result.result);
-				// content = toArray(content);
-				var content = result.result.split('\n');
-				content = removeDuplicateEntries(content);
-				content = content.sort();
-				// content = addDivTags(content);
-				// content = resultsToString(content);
-
-				res.render('authors', { title: 'Authors', places: content, file: ''});
+				 var content = removeTagsFromString(result.result);
+				 content = toArray(content);
+				 content = resultsToString(content);
+				 content = content.split('\r\n');
+				 content = removeDuplicateEntries(content);
+				 content = content.sort();
+				res.render('authors', { title: 'Authors', authors: content, file: '',
+					numResults: content.length});
 			}
 		});
 });
@@ -114,21 +112,20 @@ router.get('/places', function(req, res) {
 				if(result.result === ''){
 					console.log('No Results');
 				}
-				console.log(result.result)
-				// var content = removeTagsFromString(result.result);
-				// content = toArray(content);
-				// content = removeDuplicateEntries(content);
-				// content.sort();
-				// content = addDivTags(content);
-				// content = resultsToString(content);
-				res.render('places', { title: 'Places', places: result.result.split('\n'), file: ''});
+				var content = removeTagsFromString(result.result);
+				content = toArray(content);
+				content = resultsToString(content);
+				content = content.split('\r\n');
+				content = removeDuplicateEntries(content);
+				content = content.sort();
+				res.render('places', { title: 'places', places: content, file: '',
+					numResults: content.length});
 			}
 		});
 });
 
-
-
 router.get("/stringSearch", function(req, res){
+	var url = req.protocol  + '://' + req.get('host') + req.originalUrl;
 	var search = req.query.searchString;
 
 	function convertLogicStatementsToXQuery(str) {
@@ -155,7 +152,7 @@ router.get("/stringSearch", function(req, res){
 
 		//remove unwanted quotes for not
 		for(var j = 0; j < q.length -1; j++){
-			var x, y, z = '';
+			var x, y, z = ' ';
 			if(q.substring(j, j+2) === "''"){
 				x = q.substring(0,j);
 				y = q.substring(j+2, q.length);
@@ -170,10 +167,11 @@ router.get("/stringSearch", function(req, res){
 	}
 
 	if(search === undefined){
-		res.render('stringSearch', {results: [], searchQuery: '', numResults: ''});
+		res.render('stringSearch', {results: [], searchString: '', numResults: ''});
 	} else {
 		//var query = search;
 		var query = formatSearchInputToXQuery(convertLogicStatementsToXQuery(search));
+		//query = "'william 'ftnot' colenso'";
 
 		client.execute((tei + "for $n in .//TEI[ . contains text " + query + "]" + " return db:path($n)"),
 			function (error, result) {
@@ -182,11 +180,9 @@ router.get("/stringSearch", function(req, res){
 				} else {
 					var content = result.result.split('\n');
 					if(content[0] === "") content = [];
-
-					console.log(content);
 					res.render('stringSearch', {
 						results: content, searchString: 'Search results for ' + search,
-						numResults: content.length + ' results found'
+						numResults: content.length + ' results found', url: url
 					});
 				}
 			});
@@ -194,20 +190,24 @@ router.get("/stringSearch", function(req, res){
 });
 
 router.get("/xQuerySearch", function(req, res){
-	var search = req.query.searchQuery;
+	var url = req.protocol  + '://' + req.get('host') + req.originalUrl;
+	var search = req.query.searchString;
 	if(search === undefined){
-		res.render('xQuerySearch', {results: [], searchQuery: '', numResults: ''});
+		res.render('xQuerySearch', {results: [], searchString: '', numResults: ''});
 	} else {
 		client.execute((tei + "for $n in " + search + " return db:path($n)"),
 			function (error, result) {
 				if (error) {
+					res.render('xQuerySearch', {
+						results: '', searchString: 'Search results for ' + search + '   Error: ' + error
+					});
 					console.error(error);
 				} else {
 					var content = result.result.split('\n');
 					if(content[0] === "") content = [];
 					res.render('xQuerySearch', {
-						results: content, searchQuery: 'Search results for ' + search,
-						numResults: content.length + ' results found'
+						results: content, searchString: 'Search results for ' + search,
+						numResults: content.length + ' results found', url:url
 					});
 				}
 			});
@@ -227,7 +227,7 @@ router.get("/viewFile",function(req,res){
 });
 
 router.get("/saveXml", function(req, res){
-	console.log(req.query.file);
+	//console.log(req.query.file);
 	var content = '';
 	client.execute(tei + "(doc('Colenso" + req.query.file + "'))[1]",
 		function(error, result){
@@ -245,29 +245,63 @@ router.get("/saveXml", function(req, res){
 							console.error(error);
 						} else {
 							console.log('Saved');
-							res.render('viewFile', { file: content, path: req.query.file, saved: 'Saved'});
+							res.render('viewFile', { file: content, path: req.query.file,
+								saved: 'Saved to ' + file.pretty + file.filename});
 						}
 					});
 			}
 		});
 });
 
+router.get("/deleteXml", function(req, res){
+	var filePath = __dirname + '/../Colenso_TEI' + req.query.file;
+	console.log(filePath);
+	client.execute("DELETE " + filePath, function(error, result){
+		if(error){
+			console.error(error);
+		} else {
+			res.render('viewFile', {
+				file: '', path: req.query.file,
+				saved: 'Deleted file'
+			});
+		}
+	});
+});
+
 function getFilePath(str){
 	var arr = str.split('/');
-	var path = __dirname + '/../savedXML/';
+	var path = __dirname + '/../savedXML';
 	for(var i = 0; i < arr.length - 1; i++){
 		path += arr[i] + '/';
 		if(!fs.existsSync(path)){
 			fs.mkdirSync(path);
 		}
 	}
-	return {filepath: path, filename: arr[arr.length-1]};
+
+	//pretty path name
+	var prettyPathArr = path.split('routes/..');
+	prettyPathArr = path.split('routes/..');
+	var prettyPath = '';
+	for(var j = 0; j < prettyPathArr.length; j++){
+		prettyPath += prettyPathArr[j];
+	}
+	console.log(prettyPath);
+	return {filepath: path, filename: arr[arr.length-1], pretty: prettyPath};
 }
 
 router.get("/results", function(req, res){
-	var searchQuery = toArray(removeTagsFromString(req.query.place));
-	console.log(req.query.place);
-	client.execute(tei + "for $n in .//TEI[ . contains text " + searchQuery + "]" + " return db:path($n)",
+	console.log('place', req.query.place + ' author', req.query.author);
+	var searchQuery = '';
+	if(req.query.place != undefined){
+		console.log('place: ', req.query.place);
+		searchQuery = "for $n in //name[@type='place' and . = '" + req.query.place + "'] return db:path($n)";
+	}
+	if(req.query.author != undefined){
+		console.log('Author: ',req.query.author);
+		searchQuery = "for $n in //author//name[@type='person' and . = '" + req.query.author + "'] return db:path($n)";
+	}
+	console.log('searchquery', searchQuery);
+	client.execute(tei + searchQuery,
 		function(error, result) {
 			if(error) {
 				console.error(error);
@@ -277,11 +311,37 @@ router.get("/results", function(req, res){
 				}
 				var content = result.result;
 				content = content.split('\n');
-				console.log(content);
 
-				res.render('index', { title: 'Colenso', results: content});
+				res.render('results', {author: req.query.place, results: content, numResults: content.length + ' results found' });
 			}
 		});
+});
+
+router.get("/addFile", function(req, res){
+	res.render('addFile');
+
+});
+
+router.get("/add", function(req, res){
+	console.log(req.query.filepath);
+	client.execute("ADD " + req.query.filepath, function(error, result){
+		if(error) {
+			console.error(error);
+			res.render('addFile', {error: error});
+		} else {
+			console.log('added file to database');
+			var fname = req.query.filepath.split('/').pop();
+			client.execute(tei + "('" + fname + "')[1]",
+				function (error1, result1) {
+					if (error1) {
+						console.error(error1);
+					} else {
+
+						res.render('addFile', {added: 'Added ' + result1.result});
+					}
+				});
+		}
+	});
 });
 
 module.exports = router;

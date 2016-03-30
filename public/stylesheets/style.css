@@ -1,8 +1,30 @@
 body {
-  padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
   color: #00B7FF;
+}
+
+.save {
+    color: green;
+    float: right;
+    padding-right: 140px;
+}
+
+.added {
+    color: green;
+}
+
+.controls {
+    float: right;
+    padding-right: 140px;
+}
+
+.container.main {
+    padding-top: 80px;
+}
+
+.container.error {
+    color: red;
 }
